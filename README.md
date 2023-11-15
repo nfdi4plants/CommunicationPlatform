@@ -79,9 +79,9 @@ Before running the Ansible playbooks, ensure the following prerequisites are met
   
 ## Access URLs
 
-- Matrix Server (Synapse): http://your-matrix-server
+- Matrix Server (Synapse): http://matrix-server_ip
 - Element Chat Client: http://your-element-client
-- Keycloak SSO: http://your-keycloak-server
+- Keycloak SSO: http://keycloak_instance_ip
 
 
 

@@ -1,0 +1,50 @@
+---
+
+- name: (Deprecation) Catch and report renamed Matrix playbook settings
+  ansible.builtin.fail:
+    msg: >-
+      Your configuration contains a variable, which now has a different name.
+      Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
+  when: "item.old in vars"
+  with_items:
+    - {'old': 'matrix_vars_yml_snapshotting_enabled', 'new': 'devture_playbook_state_preserver_vars_preservation_enabled'}
+    - {'old': 'matrix_vars_yml_snapshotting_src', 'new': 'devture_playbook_state_preserver_vars_preservation_src'}
+    - {'old': 'matrix_playbook_commit_hash_preservation_enabled', 'new': 'devture_playbook_state_preserver_commit_hash_preservation_enabled'}
+
+    - {'old': 'matrix_ntpd_package', 'new': 'devture_timesync_ntpd_package'}
+    - {'old': 'matrix_ntpd_service', 'new': 'devture_timesync_ntpd_service'}
+
+    - {'old': 'matrix_systemd_unit_home_path', 'new': 'devture_systemd_docker_base_systemd_unit_home_path'}
+    - {'old': 'matrix_systemd_path', 'new': 'devture_systemd_docker_base_systemd_path'}
+    - {'old': 'matrix_host_command_docker', 'new': 'devture_systemd_docker_base_host_command_docker'}
+    - {'old': 'matrix_host_command_sh', 'new': 'devture_systemd_docker_base_host_command_sh'}
+    - {'old': 'matrix_host_command_systemctl', 'new': 'devture_systemd_docker_base_host_command_systemctl'}
+
+    - {'old': 'matrix_container_retries_count', 'new': 'devture_playbook_help_container_retries_count'}
+    - {'old': 'matrix_container_retries_delay', 'new': 'devture_playbook_help_container_retries_delay'}
+    - {'old': 'matrix_geturl_retries_count', 'new': 'devture_playbook_help_geturl_retries_count'}
+    - {'old': 'matrix_geturl_retries_delay', 'new': 'devture_playbook_help_geturl_retries_delay'}
+
+    - {'old': 'matrix_nginx_proxy_synapse_cache_path', 'new': 'matrix_synapse_reverse_proxy_companion_synapse_cache_path'}
+    - {'old': 'matrix_nginx_proxy_synapse_cache_enabled', 'new': 'matrix_synapse_reverse_proxy_companion_synapse_cache_enabled'}
+
+    - {'old': 'matrix_docker_installation_enabled', 'new': 'matrix_playbook_docker_installation_enabled'}
+    - {'old': 'matrix_docker_package_name', 'new': '<Not applicable. Docker is installed using https://github.com/geerlingguy/ansible-role-docker now>'}
+
+    - {'old': 'matrix_systemd_services_list', 'new': 'devture_systemd_service_manager_services_list_additional'}
+    - {'old': 'matrix_common_after_systemd_service_start_wait_for_timeout_seconds', 'new': 'devture_systemd_service_manager_up_verification_delay_seconds'}
+    - {'old': 'matrix_systemd_services_autostart_enabled', 'new': 'devture_systemd_service_manager_services_autostart_enabled'}
+
+- name: (Deprecation) Catch and report matrix_postgres variables
+  ansible.builtin.fail:
+    msg: |-
+      The matrix-postgres role in the playbook has been replaced with the com.devture.ansible.role.postgres role (https://github.com/devture/com.devture.ansible.role.postgres).
+      The new role is pretty much the same, but uses differently named variables.
+
+      The matrix-postgres-backup role in the playbook has been replaced with the com.devture.ansible.role.postgres_backup role (https://github.com/devture/com.devture.ansible.role.postgres_backup).
+      The new role is pretty much the same, but uses differently named variables.
+
+      Please change your configuration (vars.yml) to rename all `matrix_postgres`-prefixed variables (`matrix_postgres_*` -> `devture_postgres_*`).
+
+      The following variables in your configuration need to be renamed: {{ vars | dict2items | selectattr('key', 'match', 'matrix_postgres_.*') | map (attribute='key') | join(', ') }}
+  when: "vars | dict2items | selectattr('key', 'match', 'matrix_postgres_.*') | list | items2dict"

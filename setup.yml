@@ -1,0 +1,193 @@
+---
+- name: "Set up a All servers"
+  hosts: "{{ target_all if target_all is defined else 'all' }}"
+  become: true
+
+  roles:
+    # Most of the roles below are not distributed with the playbook, but downloaded separately using `ansible-galaxy` via the `make roles` command (see `Makefile`).
+    - role: galaxy/com.devture.ansible.role.playbook_help
+
+    - role: galaxy/com.devture.ansible.role.systemd_docker_base
+
+    - role: matrix/matrix_playbook_migration
+
+    - when: matrix_playbook_docker_installation_enabled | bool
+      role: galaxy/geerlingguy.docker
+      vars:
+        docker_install_compose: false
+      tags:
+        - setup-docker
+        - setup-all
+    - when: matrix_playbook_docker_installation_enabled | bool
+      role: base/docker
+      tags:
+          - setup-docker
+          - setup-all
+
+    - when: devture_docker_sdk_for_python_installation_enabled | bool
+      role: galaxy/com.devture.ansible.role.docker_sdk_for_python
+      tags:
+        - setup-docker
+        - setup-all
+
+    - when: devture_timesync_installation_enabled | bool
+      role: galaxy/com.devture.ansible.role.timesync
+      tags:
+        - setup-timesync
+        - setup-all
+
+- name: "Set up a Keycloak servers common"
+  hosts: "{{ target_keycloak if target_keycloak is defined else 'keycloak_servers' }}"
+  become: true
+  tasks:
+    - ansible.builtin.include_tasks: "roles/matrix/matrix-base/tasks/setup_matrix_user.yml"
+  tags:
+    - setup-all
+    - install-all
+
+
+- name: "Set up a Keycloak servers"
+  hosts: "{{ target_keycloak if target_keycloak is defined else 'keycloak_servers' }}"
+  become: true
+  roles:
+    - keycloak/keycloak_base
+    - role: galaxy/com.devture.ansible.role.playbook_help
+    - role: galaxy/com.devture.ansible.role.systemd_docker_base
+    - matrix/matrix-backup-borg
+
+  tags:
+    - setup-all
+    - install-all
+
+
+- name: "Set up a Matrix server"
+  hosts: "{{ target if target is defined else 'matrix_servers' }}"
+  become: true
+  roles:
+    # Most of the roles below are not distributed with the playbook, but downloaded separately using `ansible-galaxy` via the `make roles` command (see `Makefile`).
+    - role: galaxy/com.devture.ansible.role.playbook_help
+
+    - role: galaxy/com.devture.ansible.role.systemd_docker_base
+
+    - role: matrix/matrix_playbook_migration
+
+
+    - matrix/matrix-base
+    - matrix/matrix-dynamic-dns
+    - matrix/matrix-mailer
+
+    - role: galaxy/com.devture.ansible.role.postgres
+
+    - matrix/matrix-redis
+    - matrix/matrix-corporal
+    - matrix/matrix-bridge-appservice-discord
+    - matrix/matrix-bridge-appservice-slack
+    - matrix/matrix-bridge-appservice-webhooks
+    - matrix/matrix-bridge-appservice-irc
+    - matrix/matrix-bridge-appservice-kakaotalk
+    - matrix/matrix-bridge-beeper-linkedin
+    - matrix/matrix-bridge-go-skype-bridge
+    - matrix/matrix-bridge-mautrix-facebook
+    - matrix/matrix-bridge-mautrix-twitter
+    - matrix/matrix-bridge-mautrix-hangouts
+    - matrix/matrix-bridge-mautrix-googlechat
+    - matrix/matrix-bridge-mautrix-instagram
+    - matrix/matrix-bridge-mautrix-signal
+    - matrix/matrix-bridge-mautrix-telegram
+    - matrix/matrix-bridge-mautrix-whatsapp
+    - matrix/matrix-bridge-mautrix-discord
+    - matrix/matrix-bridge-mx-puppet-discord
+    - matrix/matrix-bridge-mx-puppet-groupme
+    - matrix/matrix-bridge-mx-puppet-steam
+    - matrix/matrix-bridge-mx-puppet-slack
+    - matrix/matrix-bridge-mx-puppet-twitter
+    - matrix/matrix-bridge-mx-puppet-instagram
+    - matrix/matrix-bridge-sms
+    - matrix/matrix-bridge-heisenbridge
+    - matrix/matrix-bridge-hookshot
+    - matrix/matrix-bot-matrix-reminder-bot
+    - matrix/matrix-bot-matrix-registration-bot
+    - matrix/matrix-bot-maubot
+    - matrix/matrix-bot-buscarron
+    - matrix/matrix-bot-honoroit
+    - matrix/matrix-bot-postmoogle
+    - matrix/matrix-bot-go-neb
+    - matrix/matrix-bot-mjolnir
+    - matrix/matrix-cactus-comments
+    - matrix/matrix-synapse
+    - matrix/matrix-synapse-reverse-proxy-companion
+    - matrix/matrix-dendrite
+    - matrix/matrix-conduit
+    - matrix/matrix-synapse-admin
+    - matrix/matrix-prometheus-node-exporter
+    - matrix/matrix-prometheus-postgres-exporter
+    - matrix/matrix-prometheus-nginxlog-exporter
+    - matrix/matrix-prometheus
+    - matrix/matrix-grafana
+    - matrix/matrix-registration
+    - matrix/matrix-client-element
+    - matrix/matrix-client-hydrogen
+    - matrix/matrix-client-cinny
+    - matrix/matrix-jitsi
+    - matrix/matrix-ldap-registration-proxy
+    - matrix/matrix-ma1sd
+    - matrix/matrix-dimension
+    - matrix/matrix-etherpad
+    - matrix/matrix-email2matrix
+    - matrix/matrix-sygnal
+    - matrix/matrix-ntfy
+    - nginx-proxy
+    - matrix/matrix-coturn
+    - matrix/matrix-aux
+
+    - role: galaxy/com.devture.ansible.role.postgres_backup
+
+    - matrix/matrix-backup-borg
+
+    - matrix/matrix-user-creator
+    - matrix/matrix-common-after
+
+    - when: devture_systemd_service_manager_enabled | bool
+      role: galaxy/com.devture.ansible.role.systemd_service_manager
+      vars: 
+        devture_systemd_service_manager_services_list: |
+              {{
+                ([{'name': 'matrix-nginx-proxy.service', 'priority': 1000, 'groups': ['matrix', 'nginx', 'reverse-proxies']}] if matrix_nginx_proxy_enabled else [])
+              }}
+
+    - role: keycloak/keycloak_custom
+
+
+    - when: devture_systemd_service_manager_enabled | bool
+      vars:
+        devture_systemd_service_manager_services_list: "{{ devture_systemd_service_manager_services_list_auto + devture_systemd_service_manager_services_list_additional }}"
+      role: galaxy/com.devture.ansible.role.systemd_service_manager
+      
+    # This is pretty much last, because we want it to better serve as a "last known good configuration".
+    # See: https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/2217#issuecomment-1301487601
+    - when: devture_playbook_state_preserver_enabled | bool
+      role: galaxy/com.devture.ansible.role.playbook_state_preserver
+      tags:
+        - setup-all
+        - install-all
+
+    - role: galaxy/com.devture.ansible.role.playbook_runtime_messages
+
+
+- name: "Set up a HA Gitlab Sheared Storage servers"
+  hosts: 
+  - "{{ target_drbd_primary if target_drbd_primary is defined else 'drbd_primary' }}"
+  - "{{ target_gitlab if target_gitlab is defined else 'drbd_secondary' }}"
+  become: true
+  debugger: on_failed
+  roles:
+  - gitlab/gitlab_drbd_storage
+  
+
+- name: "Set up a HA Gitlab servers "
+  hosts: 
+  - "{{ target_gitlab if target_gitlab is defined else 'gitlab_servers' }}"
+  become: true
+  debugger: on_failed
+  roles:
+  - gitlab/gitlab_main

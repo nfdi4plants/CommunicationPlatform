@@ -1,0 +1,34 @@
+
+- name: Create a docker configuration directory if it does not exist
+  ansible.builtin.file:
+    path: /etc/docker/
+    state: directory
+    mode: '0644'
+
+- name: Manage /etc/docker/daemon.json
+  template:
+    src: docker-daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+  register: _cfg_daemon
+
+- name: Ensure docker deamon is being restarted and running
+  when:
+  - (_cfg_daemon is changed)
+  block:
+  - name: Reload and restart docker systemctl service
+    ansible.builtin.systemd:
+      state: restarted
+      name: docker
+      
+  - name: Pause while Docker restarts
+    shell: sleep 10
+    changed_when: false
+
+  - name: Wait for docker
+    command: /usr/bin/docker images
+    register: docker_ready
+    retries: 10
+    delay: 5
+    until: docker_ready.rc == 0
+    changed_when: false

@@ -1,0 +1,37 @@
+---
+
+
+keycloak_keysstore_file_password: 
+# This is something which is provided to Let's Encrypt when retrieving SSL certificates for domains.
+#
+# In case SSL renewal fails at some point, you'll also get an email notification there.
+#
+# If you decide to use another method for managing SSL certificates (different than the default Let's Encrypt),
+# you won't be required to define this variable (see `docs/configuring-playbook-ssl-certificates.md`).
+#
+# Example value: someone@example.com
+matrix_ssl_lets_encrypt_support_email: 
+
+# A Postgres password to use for the superuser Postgres user (called `matrix` by default).
+#
+# The playbook creates additional Postgres users and databases (one for each enabled service)
+# using this superuser account.
+postgres_connection_password: 
+
+
+keycloak_admin_password : 
+
+
+
+keycloak_admin_password : 
+
+
+keycloak_postgresql_database: keycloak
+keycloak_postgresql_database_hostname: 'keycloak_postgres'
+keycloak_postgresql_database_username: "keycloak"
+keycloak_postgresql_database_password: 
+
+
+matrix_docker_network: keycloak-network
+
+

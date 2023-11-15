@@ -1,0 +1,21 @@
+---
+Keycloak_container_enabled : true
+
+
+keycloak_docker_image : quay.io/keycloak/keycloak:latest
+# keycloak_docker_image_customized: "localhost/keycloak:customized"
+
+
+
+keycloak_customized_files_path: "/opt/keycloak"
+
+keycloak_keys_files_path: "{{keycloak_customized_files_path}}/keys"
+keycloak_keysstore_file_path: "{{keycloak_keys_files_path}}/keycloak.novacloud.ir.keystore"
+
+keycloak_port : 8443
+
+keycloak_published_port: "8080:8080"
+
+postgres_container_image : postgres
+
+postgres_files_path : "{{keycloak_customized_files_path}}/postgres"

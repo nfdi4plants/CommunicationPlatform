@@ -1,0 +1,120 @@
+
+
+- name: Install the Pacemaker packages 
+  ansible.builtin.apt:
+    pkg:
+    - pacemaker=2.1.2-1ubuntu3.1
+    - pcs=0.10.11-2ubuntu3
+    - resource-agents=1:4.7.0-1ubuntu7.2
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Change user password
+  user:
+    name: hacluster
+    password: "{{ hacluster_password|password_hash('sha512') }}"
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+
+- name: Pcs host auth
+  shell: "pcs host auth {% for item in groups['gitlab_servers'] %} {{item}} {% endfor %} -u hacluster -p {{hacluster_password}}  "
+  register: pcs_host_auth_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs cluster setup ha_cluster
+  shell: "pcs cluster setup ha_cluster {% for item in groups['gitlab_servers'] %} {{item}} {% endfor %} --force  "
+  register: pcs_cluster_setup_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs cluster start
+  shell: "pcs cluster start --all "
+  register: pcs_cluster_start_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs stonith Set Disable
+  shell: "pcs property set stonith-enabled=false"
+  register: pcs_property_set_stonith_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs no-quorum-policy Set Ignore
+  shell: "pcs property set no-quorum-policy=ignore"
+  register: pcs_property_set_quorum_policy_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs setup Mount point service
+  shell: "pcs resource create GitlabNFS \
+          Filesystem  device='{{hostvars[groups['drbd_primary'][0]]['drbd_ip_address']}}:{{nfs_directory}}' \
+          directory='/var/opt' fstype='nfs' \ 
+          options='defaults,hard,rsize=1048576,wsize=1048576,noatime,nofail,_netdev,lookupcache=positive' \
+          op monitor interval=0 timeout=10 op start interval=0 timeout=20  op stop interval=0 timeout=240"
+  register: pcs_resource_create_GitlabNFS_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs create Gitlab service resource
+  shell: "pcs resource create GitlabService systemd:gitlab-runsvdir op monitor interval=1min"
+  register: pcs_resource_create_GitlabService_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs create constraint colocation GitlabService with GitlabNFS
+  shell: "pcs  constraint colocation add GitlabService with GitlabNFS"
+  register: pcs_constraint_colocation_GitlabService_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Pcs constraint colocation order NFS GitlabService then GitlabNFS
+  shell: "sudo pcs  constraint order GitlabNFS then GitlabService"
+  register: pcs_resource_ordring_GitlabService_msg
+  when: inventory_hostname in groups['gitlab_servers'][0]
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Ensure started and enabled a pacemaker.service Service 
+  ansible.builtin.systemd:
+    name:  pacemaker.service
+    state: started
+    enabled: true
+  register: pacemaker_service_status
+  ignore_errors: true
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+- name: Ensure started and enabled a corosync.service Service 
+  ansible.builtin.systemd:
+    name:  corosync.service
+    state: started
+    enabled: true
+  register: corosync_service_status
+  ignore_errors: true
+  tags:
+  - setup-gitlab
+  - install-gitlab
+
+  

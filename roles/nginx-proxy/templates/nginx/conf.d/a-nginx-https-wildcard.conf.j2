@@ -1,0 +1,79 @@
+
+{# {% if matrix_wildcard_cerifiate_enabled %} #}
+server {
+	listen {{ 8443 if matrix_nginx_proxy_enabled else 443 }} ssl http2;
+	listen [::]:{{ 8443 if matrix_nginx_proxy_enabled else 443 }} ssl http2;
+
+	server_name _.{{ matrix_domain }};
+
+	server_tokens off;
+	root /dev/null;
+
+	proxy_buffers 8 16k;
+    proxy_buffer_size 32k;
+
+	ssl_certificate {{ matrix_ssl_config_dir_path }}/live/_.{{ matrix_domain }}/fullchain.pem;
+	ssl_certificate_key {{ matrix_ssl_config_dir_path }}/live/_.{{ matrix_domain }}/privkey.pem;
+
+	ssl_protocols {{ matrix_nginx_proxy_ssl_protocols }};
+	{% if matrix_nginx_proxy_ssl_ciphers != "" %}
+	ssl_ciphers {{ matrix_nginx_proxy_ssl_ciphers }};
+	{% endif %}
+	ssl_prefer_server_ciphers {{ matrix_nginx_proxy_ssl_prefer_server_ciphers }};
+
+	{% if matrix_nginx_proxy_ocsp_stapling_enabled %}
+		ssl_stapling on;
+		ssl_stapling_verify on;
+		ssl_trusted_certificate {{ matrix_ssl_config_dir_path }}/live/_.{{ matrix_domain }}/chain.pem;
+	{% endif %}
+
+	{% if matrix_nginx_proxy_ssl_session_tickets_off %}
+		ssl_session_tickets off;
+	{% endif %}
+	ssl_session_cache {{ matrix_nginx_proxy_ssl_session_cache }};
+	ssl_session_timeout {{ matrix_nginx_proxy_ssl_session_timeout }};
+
+}
+
+
+server {
+
+	{% if matrix_nginx_proxy_https_enabled %}
+		listen {{ matrix_nginx_proxy_proxy_matrix_federation_port }} ssl http2;
+		listen [::]:{{ matrix_nginx_proxy_proxy_matrix_federation_port }} ssl http2;
+	{% else %}
+		listen {{ matrix_nginx_proxy_proxy_matrix_federation_port }};
+	{% endif %}
+
+	server_name _.{{ matrix_domain }};
+	server_tokens off;
+
+	root /dev/null;
+
+	gzip on;
+	gzip_types text/plain application/json;
+
+	{% if matrix_nginx_proxy_https_enabled %}
+		ssl_certificate {{ matrix_ssl_config_dir_path }}/live/_.{{ matrix_domain }}/fullchain.pem;
+		ssl_certificate_key {{ matrix_ssl_config_dir_path }}/live/_.{{ matrix_domain }}/privkey.pem;
+
+		ssl_protocols {{ matrix_nginx_proxy_ssl_protocols }};
+		{% if matrix_nginx_proxy_ssl_ciphers != '' %}
+			ssl_ciphers {{ matrix_nginx_proxy_ssl_ciphers }};
+		{% endif %}
+		ssl_prefer_server_ciphers {{ matrix_nginx_proxy_ssl_prefer_server_ciphers }};
+
+		{% if matrix_nginx_proxy_ocsp_stapling_enabled %}
+			ssl_stapling on;
+			ssl_stapling_verify on;
+			ssl_trusted_certificate {{ matrix_ssl_config_dir_path }}/live/_.{{ matrix_domain }}/chain.pem;
+		{% endif %}
+
+		{% if matrix_nginx_proxy_ssl_session_tickets_off %}
+			ssl_session_tickets off;
+		{% endif %}
+		ssl_session_cache {{ matrix_nginx_proxy_ssl_session_cache }};
+		ssl_session_timeout {{ matrix_nginx_proxy_ssl_session_timeout }};
+	{% endif %}
+
+}

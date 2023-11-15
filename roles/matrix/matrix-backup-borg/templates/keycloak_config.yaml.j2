@@ -1,0 +1,36 @@
+#jinja2: lstrip_blocks: "True", trim_blocks: "True"
+
+location:
+  repositories: {{ keycloak_backup_borg_location_repositories|to_json }}
+  one_file_system: true
+
+storage:
+  compression: {{ matrix_backup_borg_storage_compression|to_json }}
+  ssh_command: {{ matrix_backup_borg_storage_ssh_command|to_json }}
+  archive_name_format: {{ matrix_backup_borg_storage_archive_name_format|to_json }}
+  encryption_passphrase: {{ matrix_backup_borg_storage_encryption_passphrase|to_json }}
+  unknown_unencrypted_repo_access_is_ok: {{ matrix_backup_borg_unknown_unencrypted_repo_access_is_ok|to_json }}
+
+retention:
+  keep_hourly: {{ matrix_backup_borg_retention_keep_hourly|to_json }}
+  keep_daily: {{ matrix_backup_borg_retention_keep_daily|to_json }}
+  keep_weekly: {{ matrix_backup_borg_retention_keep_weekly|to_json }}
+  keep_monthly: {{ matrix_backup_borg_retention_keep_monthly|to_json }}
+  keep_yearly: {{ matrix_backup_borg_retention_keep_yearly|to_json }}
+  prefix: {{ keycloak_backup_borg_retention_prefix|to_json }}
+
+consistency:
+  checks:
+    - repository
+    - archives
+
+hooks:
+  postgresql_databases:
+  - name: {{ keycloak_postgresql_database|to_json }}
+    hostname: {{ keycloak_postgresql_database_hostname|to_json }}
+    username: {{ keycloak_postgresql_database_username|to_json }}
+    password: {{ keycloak_postgresql_database_password|to_json }}
+  after_backup:
+    - echo "Backup created."
+  on_error:
+    - echo "Error while creating a backup."

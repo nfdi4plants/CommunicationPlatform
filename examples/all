@@ -1,0 +1,108 @@
+---
+
+########################################################################
+#                                                                      #
+# Playbook                                                             #
+#                                                                      #
+########################################################################
+
+# Controls whether to install Docker or not
+# Also see `devture_docker_sdk_for_python_installation_enabled`.
+matrix_playbook_docker_installation_enabled: true
+
+
+matrix_domain: YOUR_BARE_DOMAIN_NAME_HERE
+
+
+
+
+########################################################################
+#                                                                      #
+# Default                                                              #
+#                                                                      #
+########################################################################
+
+#borg_add
+matrix_user_username: "matrix"
+matrix_user_groupname: "matrix"
+
+# By default, the playbook creates the user (`matrix_user_username`)
+# and group (`matrix_user_groupname`) with a random id.
+# To use a specific user/group id, override these variables.
+matrix_user_uid: ~
+matrix_user_gid: ~
+matrix_base_data_path: "/matrix"
+matrix_base_data_path_mode: "750"
+
+run_setup: true
+
+######################################################################
+#
+# SSL_configuration 
+#
+######################################################################
+
+matrix_ssl_retrieval_method: manually-managed
+
+######################################################################
+#
+# docker_custom
+#
+######################################################################
+
+# if you use internet through IPv6 only, please use this registery : registry.ipv6.docker.com
+container_registry_mirror: 
+container_registry_debug: 
+
+######################################################################
+#
+# Keycloak
+#
+######################################################################
+
+keycloak_enabled: true
+
+
+keycloak_service_name:  "keycloak"
+
+keycloak_admin_password:
+
+fqn_keycloak: "{{ keycloak_service_name }}.{{ matrix_domain }}"
+
+keycloak_realm_name :
+keycloak_client_id:
+vault_synapse_keycloak:
+matrix_wildcard_cerifiate_enabled: true
+
+
+######################################################################
+#
+# Gitlab
+#
+######################################################################
+
+gitlab_enabled: false
+
+drbd_enabled: false
+
+gitlab_service_name:  "gitlab"
+
+
+fqn_gitlab: "{{ gitlab_service_name }}.{{ matrix_domain }}"
+
+gitlab_http_service_port: "80"
+
+
+hacluster_password:
+
+nfs_directory: /mnt/gitlab_data/
+
+nginx_custom_file_path: /etc/nginx/conf.d/nginx_custom.conf
+
+######################################################################
+#
+# backup_borg
+#
+######################################################################
+
+matrix_backup_borg_enabled: true

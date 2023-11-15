@@ -1,0 +1,7 @@
+
+
+{% for item in groups['gitlab_servers'] %}
+
+{{nfs_directory}}  {{hostvars[item]['service_ip_address']}}(rw,sync,no_root_squash,no_subtree_check)
+
+{% endfor %}

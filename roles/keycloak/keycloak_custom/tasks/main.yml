@@ -1,0 +1,35 @@
+
+- name: Create or update Keycloak realm
+  community.general.keycloak_realm:
+    auth_client_id: admin-cli
+    auth_keycloak_url: "https://{{ fqn_keycloak }}"
+    auth_realm: master
+    auth_username: admin
+    auth_password: "{{ keycloak_admin_password }}"
+    id: "{{keycloak_realm_name}}"
+    realm: "{{keycloak_realm_name}}"
+    state: present
+  tags:
+  - setup-all
+  - install-all
+
+
+- name: Create or update Keycloak client
+  community.general.keycloak_client:
+    auth_client_id: admin-cli
+    auth_keycloak_url: "https://{{ fqn_keycloak }}"
+    auth_realm: master
+    realm: "{{keycloak_realm_name}}"
+    auth_username: admin
+    auth_password: "{{ keycloak_admin_password }}"
+    client_id: "{{keycloak_client_id}}"
+    secret: "{{vault_synapse_keycloak}}"
+    redirect_uris: "https://matrix.test-plantmicrobe.de/_synapse/client/oidc/callback"
+    frontchannel_logout: true
+    attributes:
+      backchannel.logout.url: "https://matrix.test-plantmicrobe.de/_synapse/client/oidc/backchannel_logout" 
+    state: present
+    # delegate_to: localhost
+  tags:
+  - setup-all
+  - install-all

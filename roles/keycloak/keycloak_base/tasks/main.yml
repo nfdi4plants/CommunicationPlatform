@@ -1,0 +1,7 @@
+---
+- block:
+  - when: Keycloak_container_enabled | bool
+    ansible.builtin.include_tasks: "{{ role_path }}/tasks/setup_all.yml"  
+  tags:
+  - setup-all
+  - install-all

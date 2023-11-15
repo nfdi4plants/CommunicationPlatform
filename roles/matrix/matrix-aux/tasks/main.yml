@@ -1,0 +1,9 @@
+---
+
+- block:
+    - ansible.builtin.include_tasks: "{{ role_path }}/tasks/setup.yml"
+  tags:
+    - setup-all
+    - setup-aux-files
+    - install-all
+    - install-aux-files

@@ -1,0 +1,10 @@
+
+- name: Add IP address of all hosts to all hosts of Gitlab servers
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ hostvars[item].ansible_host }} {{ hostvars[item].inventory_hostname }} {{ hostvars[item].inventory_hostname_short }}"
+    state: present
+  with_items: "{{ play_hosts }}"
+  tags:
+  - setup-gitlab
+  - install-gitlab

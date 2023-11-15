@@ -1,0 +1,114 @@
+---
+
+- name: Ensure Keycloak paths exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: 0750
+    # owner: "{{ matrix_user_username }}"
+    # group: "{{ matrix_user_groupname }}"
+  with_items:
+    - {path: "{{ postgres_files_path }}", when: true}
+   # - {path: "{{ keycloak_keys_files_path }}", when: true}
+    
+
+- name: Create a network
+  community.docker.docker_network:
+    name: "{{ matrix_docker_network }}"
+
+- name: Pull an image {{ postgres_container_image }}
+  community.docker.docker_image:
+    name: "{{ postgres_container_image }}"
+    source: pull
+    pull:
+      platform: amd64
+
+- name: run Postgres in a container
+  docker_container:
+    name: "{{keycloak_postgresql_database_hostname}}"
+    image: "{{postgres_container_image}}"
+    restart_policy: always
+    state: started
+    privileged: yes
+    networks:
+    - name: keycloak-network
+    env:
+      POSTGRES_DB : "{{keycloak_postgresql_database}}"
+      POSTGRES_USER : "{{keycloak_postgresql_database_username}}"
+      POSTGRES_PASSWORD: "{{ keycloak_postgresql_database_password }}"
+    volumes:
+      - "{{ postgres_files_path }}:/var/lib/postgresql/data"
+
+
+- name: Pull an image {{ keycloak_docker_image }}
+  community.docker.docker_image:
+    name: "{{ keycloak_docker_image }}"
+    source: pull
+    pull:
+      platform: amd64
+
+- name: run Keycloak in a container
+  docker_container:
+    name: keycloak
+    image: "{{keycloak_docker_image}}"
+    restart_policy: always
+    state: started
+    privileged: yes
+    exposed_ports:
+      - "{{keycloak_port}}"
+    published_ports:
+      - "{{keycloak_published_port}}"
+      - 8443:8443
+    env:
+      KC_DB : "postgres"
+      KC_DB_URL : "jdbc:postgresql://{{ keycloak_postgresql_database_hostname }}/{{ keycloak_postgresql_database }}"
+      KC_DB_USERNAME: "{{ keycloak_postgresql_database_username }}"
+      KC_DB_PASSWORD : "{{ keycloak_postgresql_database_password }}"
+      KC_HOSTNAME : "{{ fqn_keycloak }}"
+      KC_FEATURES : "token-exchange"
+      KC_HEALTH_ENABLED : "true"
+      KC_METRICS_ENABLED : "true"
+      KEYCLOAK_ADMIN : "admin"
+      KC_HOSTNAME_STRICT: "false"
+      # KC_LOG_LEVEL: "debug"
+      # KC_HTTPS_KEY_STORE_FILE: "{{keycloak_keysstore_file_path}}"
+      # KC_HTTPS_KEY_STORE_PASSWORD: "{{keycloak_keysstore_file_password}}"
+      KC_PROXY : "edge"
+      # KC_HTTP_ENABLED: "true"
+      KEYCLOAK_ADMIN_PASSWORD : "{{ keycloak_admin_password }}"
+    networks:
+    - name: keycloak-network
+    #volumes:
+    #  - "/opt/keycloak/keys/:/opt/keycloak/keys/"
+    command: start
+
+
+
+      
+
+ # - name: Ensure Keycloak paths exist
+  #     ansible.builtin.file:
+  #       path: "{{ item.path }}"
+  #       state: directory
+  #       mode: 0750
+  #       owner: "{{ matrix_user_username }}"
+  #       group: "{{ matrix_user_groupname }}"
+  #     with_items:
+  #       - {path: "{{ keycloak_customized_files_path }}", when: true}
+        
+  #   - name: Ensure customizations Keycloak Dockerfile is created
+  #     ansible.builtin.template:
+  #       src: "{{ role_path }}/templates/Dockerfile.j2"
+  #       dest: "{{  keycloak_customized_files_path  }}/Dockerfile"
+  #       owner: "{{ matrix_user_username }}"
+  #       group: "{{ matrix_user_groupname }}"
+  #       mode: 0640
+
+  #   - name: Ensure customized Docker image for Keycloak is built
+  #     community.docker.docker_image:
+  #           name: "{{ keycloak_docker_image_customized }}"
+  #           source: build
+  #           build:
+  #             dockerfile: Dockerfile
+  #             path: "{{ keycloak_customized_files_path }}"
+  #         pull: true
